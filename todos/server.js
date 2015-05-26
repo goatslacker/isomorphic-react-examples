@@ -12,6 +12,7 @@ app.set('views', path.join(__dirname, 'templates'));
 app.set('view engine', 'jade')
 
 
+/* Simulate an asynchronous event to retrieve products from storage. */
 function getTodosFromServer(cb) {
   setTimeout(function () {
 
@@ -24,7 +25,6 @@ function getTodosFromServer(cb) {
 
   }, 500)
 }
-
 
 
 /* just the one simple route which displays a todo list */
