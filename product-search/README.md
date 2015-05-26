@@ -1,4 +1,4 @@
-# todos-flux-iso
+# product-search-iso
 
 > Isomorphic react application using flux.
 
