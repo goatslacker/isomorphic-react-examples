@@ -1,0 +1,70 @@
+/**
+ * swipr styles
+ */
+
+.swipr {
+    position: relative;
+    width: 270px;
+    margin: 0 auto;
+    font-size: 0;
+    line-height: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    -webkit-user-select: none;
+    -moz-user-select: none; 
+    -o-user-select: none;
+    user-select: none;
+}
+
+.swipr li {
+    width: 270px;
+    margin-right: 10px;
+    position: relative;
+    display: inline-block;
+    font-family: sans-serif;
+    padding-top: 75px;
+    text-align: center;
+    font-size: 14px;
+    line-height: 30px;
+    background: #fff;
+    color: #fff;
+    overflow: hidden;
+    padding-bottom: 75px;
+}
+
+.swipr_slides {
+    display: inline-block;
+}
+
+@media screen and (min-width: 640px ) {
+
+    .swipr_example {
+        width: 640px;
+        margin: 0 auto 20px;
+    }
+
+    .swipr {
+        width: 540px;
+    }
+
+    .swipr li {
+        width: 580px;
+    }
+
+}
+
+@media screen and (min-width: 980px ) {
+
+    .swipr_example {
+        width: 980px;
+        margin: 0 auto 20px;
+    }
+
+    .swipr {
+        width: 880px;
+    }
+
+    .swipr li {
+        width: 880px;
+    }
+}

@@ -1,0 +1,41 @@
+{
+  "name": "image-swipe",
+  "description": "An isomorphic image swipe example using alt and iso",
+  "main": ".",
+  "dependencies": {
+    "express": "^4.11.2",
+    "serve-favicon": "^2.2.0",
+    "jade": "^1.9.2",
+    "alt": "^0.16.5",
+    "iso": "^4.1.0",
+    "react": "^0.13.3",
+    "react-swipr": "^1.0.10"
+  },
+  "devDependencies": {
+    "babel": "^4.0.1",
+    "babelify": "^5.0.3",
+    "browserify": "^8.0.3"
+  },
+  "scripts": {
+    "build": "browserify --debug -t [babelify] client.js > public/js/bundle.js",
+    "start": "babel-node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/steveniseki/react-flux-alt-iso"
+  },
+  "keywords": [
+    "isomorphic",
+    "javascript",
+    "iso",
+    "flux",
+    "alt",
+    "react"
+  ],
+  "author": "Steven Iseki <stevenisekimartin@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/goatslacker/isomorphic-react-examples/issues"
+  },
+  "homepage": "https://github.com/goatslacker/isomorphic-react-examples"
+}
