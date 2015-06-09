@@ -17,7 +17,7 @@
     "browserify": "^8.0.3"
   },
   "scripts": {
-    "build": "browserify --debug -t [babelify] client.js > public/js/bundle.js",
+    "build": "browserify -t [babelify] client.js > public/js/bundle.js",
     "start": "babel-node server.js"
   },
   "repository": {
