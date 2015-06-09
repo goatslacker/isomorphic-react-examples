@@ -17,7 +17,7 @@ app.use('/public', express.static(path.join(__dirname, 'public')))
 function getTimeFromServer(cb) {
   setTimeout(function () {
     cb(Date.now())
-  }, 250)
+  }, 300)
 }
 
 /* 
@@ -35,13 +35,10 @@ app.get('/', function (req, res) {
       }
     }
 
-    let node = React.createElement(AltIsomorphicElement, {
-      altStores: data
-    })
+    let node = React.createElement(AltIsomorphicElement, { altStores: data })
+    let html = Iso.render(React.renderToString(node), { altStores: data }, { react: true })
+    res.render('layout', { html: html })
 
-    res.render('layout', {
-      html: Iso.render(React.renderToString(node), { altStores: data }, { react: true })
-    })
   })
 })
 

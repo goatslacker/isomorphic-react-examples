@@ -25,7 +25,7 @@ app.set('view engine', 'jade')
 function getProductsFromServer(cb) {
   setTimeout(function () {
 
-    let mockData = [
+    var mockData = [
       {name: 'Football', category: 'Sporting Goods', price: '$49.99', stocked: true, visible: true},
       {name: 'Basketball', category: 'Sporting Goods', price: '$29.99', stocked: false, visible: true},
       {name: 'iPhone 5', category: 'Electronics', price: '$399.99', stocked: false, visible: true},
@@ -43,14 +43,14 @@ app.get('/', function (req, res) {
 
    getProductsFromServer( function (products) {
     
-    let data = {
+    var data = {
       ProductStore: {
         products: products
       }
     }
 
-    let node = React.createElement(AltIsomorphicElement, { altStores: data })
-    let html = Iso.render(React.renderToString(node), { altStores: data }, { react: true })
+    var node = React.createElement(AltIsomorphicElement, { altStores: data })
+    var html = Iso.render(React.renderToString(node), { altStores: data }, { react: true })
     res.render('layout', { html: html })
   });
 
