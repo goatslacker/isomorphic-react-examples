@@ -103,6 +103,7 @@ function makeAction(alt, namespace, name, implementation, obj) {
 
 module.exports = exports['default'];
 },{"../symbols/symbols":7,"../utils/AltUtils":8,"es-symbol":11}],3:[function(require,module,exports){
+/*global window*/
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -158,6 +159,9 @@ var Alt = (function () {
     this.serialize = config.serialize || JSON.stringify;
     this.deserialize = config.deserialize || JSON.parse;
     this.dispatcher = config.dispatcher || new _flux.Dispatcher();
+    this.batchingFunction = config.batchingFunction || function (callback) {
+      return callback();
+    };
     this.actions = { global: {} };
     this.stores = {};
     this.storeTransforms = config.storeTransforms || [];
@@ -169,7 +173,11 @@ var Alt = (function () {
   _createClass(Alt, [{
     key: 'dispatch',
     value: function dispatch(action, data, details) {
-      this.dispatcher.dispatch({ action: action, data: data, details: details });
+      var _this = this;
+
+      this.batchingFunction(function () {
+        return _this.dispatcher.dispatch({ action: action, data: data, details: details });
+      });
     }
   }, {
     key: 'createUnsavedStore',
@@ -237,7 +245,7 @@ var Alt = (function () {
         argsForConstructor[_key4 - 2] = arguments[_key4];
       }
 
-      var _this = this;
+      var _this2 = this;
 
       var exportObj = arguments[1] === undefined ? {} : arguments[1];
 
@@ -291,7 +299,7 @@ var Alt = (function () {
         }
 
         // create the action
-        exportObj[actionName] = (0, _actions2['default'])(_this, key, actionName, action, exportObj);
+        exportObj[actionName] = (0, _actions2['default'])(_this2, key, actionName, action, exportObj);
 
         // generate a constant
         var constant = utils.formatAsConstant(actionName);
@@ -388,6 +396,16 @@ var Alt = (function () {
     value: function getStore(name) {
       return this.stores[name];
     }
+  }], [{
+    key: 'debug',
+    value: function debug(name, alt) {
+      var key = 'alt.js.org';
+      if (typeof window !== 'undefined') {
+        window[key] = window[key] || [];
+        window[key].push({ name: name, alt: alt });
+      }
+      return alt;
+    }
   }]);
 
   return Alt;
@@ -439,32 +457,55 @@ var AltStore = (function () {
     this[Sym.LIFECYCLE] = model[Sym.LIFECYCLE];
     this[Sym.STATE_CONTAINER] = state || model;
 
+    this.preventDefault = false;
     this._storeName = model._storeName;
     this.boundListeners = model[Sym.ALL_LISTENERS];
     this.StoreModel = StoreModel;
+
+    var output = model.output || function (x) {
+      return x;
+    };
+
+    this.emitChange = function () {
+      _this[EE].emit('change', output.call(model, _this[Sym.STATE_CONTAINER]));
+    };
+
+    var handleDispatch = function handleDispatch(f, payload) {
+      try {
+        return f();
+      } catch (e) {
+        if (model[Sym.HANDLING_ERRORS]) {
+          _this[Sym.LIFECYCLE].emit('error', e, payload, _this[Sym.STATE_CONTAINER]);
+          return false;
+        } else {
+          throw e;
+        }
+      }
+    };
 
     fn.assign(this, model[Sym.PUBLIC_METHODS]);
 
     // Register dispatcher
     this.dispatchToken = alt.dispatcher.register(function (payload) {
+      _this.preventDefault = false;
       _this[Sym.LIFECYCLE].emit('beforeEach', payload, _this[Sym.STATE_CONTAINER]);
 
-      if (model[Sym.LISTENERS][payload.action]) {
-        var result = false;
+      var actionHandler = model[Sym.LISTENERS][payload.action] || model.otherwise;
 
-        try {
-          result = model[Sym.LISTENERS][payload.action](payload.data);
-        } catch (e) {
-          if (model[Sym.HANDLING_ERRORS]) {
-            _this[Sym.LIFECYCLE].emit('error', e, payload, _this[Sym.STATE_CONTAINER]);
-          } else {
-            throw e;
-          }
-        }
+      if (actionHandler) {
+        var result = handleDispatch(function () {
+          return actionHandler.call(model, payload.data, payload.action);
+        }, payload);
 
-        if (result !== false) {
-          _this.emitChange();
-        }
+        if (result !== false && !_this.preventDefault) _this.emitChange();
+      }
+
+      if (model.reduce) {
+        handleDispatch(function () {
+          model.setState(model.reduce(_this[Sym.STATE_CONTAINER], payload));
+        }, payload);
+
+        if (!_this.preventDefault) _this.emitChange();
       }
 
       _this[Sym.LIFECYCLE].emit('afterEach', payload, _this[Sym.STATE_CONTAINER]);
@@ -479,11 +520,6 @@ var AltStore = (function () {
       return this[EE];
     }
   }, {
-    key: 'emitChange',
-    value: function emitChange() {
-      this[EE].emit('change', this[Sym.STATE_CONTAINER]);
-    }
-  }, {
     key: 'listen',
     value: function listen(cb) {
       var _this2 = this;
@@ -496,6 +532,7 @@ var AltStore = (function () {
   }, {
     key: 'unlisten',
     value: function unlisten(cb) {
+      if (!cb) throw new TypeError('Unlisten must receive a function');
       this[Sym.LIFECYCLE].emit('unlisten');
       this[EE].removeListener('change', cb);
     }
@@ -557,17 +594,23 @@ var StoreMixin = {
   },
 
   exportAsync: function exportAsync(asyncMethods) {
+    this.registerAsync(asyncMethods);
+  },
+
+  registerAsync: function registerAsync(asyncDef) {
     var _this = this;
 
-    var _isLoading = false;
-    var _hasError = false;
+    var loadCounter = 0;
+
+    var asyncMethods = fn.isFunction(asyncDef) ? asyncDef(this.alt) : asyncDef;
 
     var toExport = Object.keys(asyncMethods).reduce(function (publicMethods, methodName) {
-      var asyncSpec = asyncMethods[methodName](_this);
+      var desc = asyncMethods[methodName];
+      var spec = fn.isFunction(desc) ? desc(_this) : desc;
 
       var validHandlers = ['success', 'error', 'loading'];
       validHandlers.forEach(function (handler) {
-        if (asyncSpec[handler] && !asyncSpec[handler][Sym.ACTION_KEY]) {
+        if (spec[handler] && !spec[handler][Sym.ACTION_KEY]) {
           throw new Error('' + handler + ' handler must be an action function');
         }
       });
@@ -578,22 +621,31 @@ var StoreMixin = {
         }
 
         var state = _this.getInstance().getState();
-        var value = asyncSpec.local && asyncSpec.local.apply(asyncSpec, [state].concat(args));
+        var value = spec.local && spec.local.apply(spec, [state].concat(args));
+        var shouldFetch = spec.shouldFetch ? spec.shouldFetch.apply(spec, [state].concat(args)) : value == null;
+        var intercept = spec.interceptResponse || function (x) {
+          return x;
+        };
+
+        var makeActionHandler = function makeActionHandler(action, isError) {
+          return function (x) {
+            var fire = function fire() {
+              loadCounter -= 1;
+              action(intercept(x, action, args));
+              if (isError) throw x;
+            };
+            return typeof window === 'undefined' ? function () {
+              return fire();
+            } : fire();
+          };
+        };
 
         // if we don't have it in cache then fetch it
-        if (!value) {
-          _isLoading = true;
-          _hasError = false;
+        if (shouldFetch) {
+          loadCounter += 1;
           /* istanbul ignore else */
-          if (asyncSpec.loading) asyncSpec.loading();
-          asyncSpec.remote.apply(asyncSpec, [state].concat(args)).then(function (v) {
-            _isLoading = false;
-            asyncSpec.success(v);
-          })['catch'](function (v) {
-            _isLoading = false;
-            _hasError = true;
-            asyncSpec.error(v);
-          });
+          if (spec.loading) spec.loading(intercept(null, spec.loading, args));
+          return spec.remote.apply(spec, [state].concat(args))['catch'](makeActionHandler(spec.error, 1)).then(makeActionHandler(spec.success));
         } else {
           // otherwise emit the change now
           _this.emitChange();
@@ -606,10 +658,7 @@ var StoreMixin = {
     this.exportPublicMethods(toExport);
     this.exportPublicMethods({
       isLoading: function isLoading() {
-        return _isLoading;
-      },
-      hasError: function hasError() {
-        return _hasError;
+        return loadCounter > 0;
       }
     });
   },
@@ -777,7 +826,10 @@ function createPrototype(proto, alt, key, extras) {
   return fn.assign(proto, _StoreMixin2['default'], {
     _storeName: key,
     alt: alt,
-    dispatcher: alt.dispatcher
+    dispatcher: alt.dispatcher,
+    preventDefault: function preventDefault() {
+      this.getInstance().preventDefault = true;
+    }
   }, extras);
 }
 
@@ -813,6 +865,10 @@ function createStoreFromObject(alt, StoreModel, key) {
   if (StoreProto.bindListeners) {
     _StoreMixin2['default'].bindListeners.call(StoreProto, StoreProto.bindListeners);
   }
+  /* istanbul ignore else */
+  if (StoreProto.observe) {
+    _StoreMixin2['default'].bindListeners.call(StoreProto, StoreProto.observe(alt));
+  }
 
   // bind the lifecycle events
   /* istanbul ignore else */
@@ -823,7 +879,7 @@ function createStoreFromObject(alt, StoreModel, key) {
   }
 
   // create the instance and fn.assign the public methods to the instance
-  storeInstance = fn.assign(new _AltStore2['default'](alt, StoreProto, StoreProto.state, StoreModel), StoreProto.publicMethods, { displayName: key });
+  storeInstance = fn.assign(new _AltStore2['default'](alt, StoreProto, StoreProto.state || {}, StoreModel), StoreProto.publicMethods, { displayName: key });
 
   return storeInstance;
 }
@@ -867,13 +923,8 @@ function createStoreFromClass(alt, StoreModel, key) {
 
   var store = new (_bind.apply(Store, [null].concat(argsForClass)))();
 
-  if (config.bindListeners) {
-    store.bindListeners(config.bindListeners);
-  }
-
-  if (config.datasource) {
-    store.exportAsync(config.datasource);
-  }
+  if (config.bindListeners) store.bindListeners(config.bindListeners);
+  if (config.datasource) store.registerAsync(config.datasource);
 
   storeInstance = fn.assign(new _AltStore2['default'](alt, store, store[alt.config.stateKey] || store[config.stateKey] || null, StoreModel), utils.getInternalMethods(StoreModel), config.publicMethods, { displayName: key });
 
@@ -2001,15 +2052,28 @@ module.exports = Iso;
 
 
 },{"escape-html":19}],19:[function(require,module,exports){
+/*!
+ * escape-html
+ * Copyright(c) 2012-2013 TJ Holowaychuk
+ * MIT Licensed
+ */
+
+/**
+ * Module exports.
+ * @public
+ */
+
+module.exports = escapeHtml;
+
 /**
  * Escape special characters in the given string of html.
  *
- * @param  {String} html
- * @return {String}
- * @api private
+ * @param  {string} str The string to escape for inserting into HTML
+ * @return {string}
+ * @public
  */
 
-module.exports = function(html) {
+function escapeHtml(html) {
   return String(html)
     .replace(/&/g, '&amp;')
     .replace(/"/g, '&quot;')
