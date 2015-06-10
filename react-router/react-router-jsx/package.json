@@ -16,8 +16,8 @@
     "jade": "^1.9.2",
     "alt": "^0.16.5",
     "iso": "^4.1.0",
-    "react": "^0.12.2",
-    "react-router": "^0.11.6",
+    "react": "^0.13.3",
+    "react-router": "^0.13.3",
     "node-jsx": "^0.12.4"
   },
   "devDependencies": {
