@@ -1,6 +1,5 @@
 import alt from '../alt'
 import LocationActions from '../actions/LocationActions'
-import LocationSource from '../sources/LocationSource'
 import FavoritesStore from './FavoritesStore'
 
 class LocationStore {
@@ -11,28 +10,20 @@ class LocationStore {
     this.bindListeners({
       handleUpdateLocations: LocationActions.UPDATE_LOCATIONS,
       handleFetchLocations: LocationActions.FETCH_LOCATIONS,
-      handleLocationsFailed: LocationActions.LOCATIONS_FAILED,
       setFavorites: LocationActions.FAVORITE_LOCATION
     });
 
     this.exportPublicMethods({
       getLocation: this.getLocation
     });
-
-    this.exportAsync(LocationSource);
   }
 
   handleUpdateLocations(locations) {
-    this.locations = locations;
-    this.errorMessage = null;
+    this.locations = locations
   }
 
   handleFetchLocations() {
-    this.locations = [];
-  }
-
-  handleLocationsFailed(errorMessage) {
-    this.errorMessage = errorMessage;
+    this.locations = []
   }
 
   resetAllFavorites() {
@@ -46,18 +37,16 @@ class LocationStore {
   }
 
   setFavorites(location) {
-    this.waitFor(FavoritesStore);
-
-    let favoritedLocations = FavoritesStore.getState().locations;
-
-    this.resetAllFavorites();
+    this.waitFor(FavoritesStore)
+    let favoritedLocations = FavoritesStore.getState().locations
+    this.resetAllFavorites()
 
     favoritedLocations.forEach((location) => {
       // find each location in the array and set favorite to true
       for (let i = 0; i < this.locations.length; i += 1) {
         if (this.locations[i].id === location.id) {
-          this.locations[i].has_favorite = true;
-          break;
+          this.locations[i].has_favorite = true
+          break
         }
       }
     });
@@ -67,10 +56,9 @@ class LocationStore {
     let { locations } = this.getState();
     for (let i = 0; i < locations.length; i += 1) {
       if (locations[i].id === id) {
-        return locations[i];
+        return locations[i]
       }
     }
-
     return null;
   }
 }

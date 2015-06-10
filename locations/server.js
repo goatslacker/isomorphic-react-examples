@@ -2,6 +2,7 @@ import express from 'express'
 import React from 'react'
 import AltIsomorphicElement from './src/components/AltIsomorphicElement'
 import Iso from 'iso'
+import LocationApi from './src/api/Locations'
 
 /* express boilerplate */
 let app = express()
@@ -12,20 +13,20 @@ app.set('view engine', 'jade')
 app.set('views', path.join(__dirname, 'templates'))
 app.use('/public', express.static(path.join(__dirname, 'public')))
 
+
 /* just the one simple route which for now displays our locations */
 app.get('/', function (req, res) {
 
-  let data = {
-    LocationStore: {}
-  }
+  /* simulate a call to an API to return location data */
+  LocationApi.fetch()
+    .then((locations) => {
+      console.log(locations)
+      let data = { LocationStore: {locations: locations} }
+      let node = React.createElement(AltIsomorphicElement, { altStores: data })
+      let html = Iso.render(React.renderToString(node), { altStores: data }, { react: true })
+      res.render('layout', { html: html })
 
-  let node = React.createElement(AltIsomorphicElement, {
-    altStores: data
-  })
-
-  res.render('layout', {
-    html: Iso.render(React.renderToString(node), { altStores: data }, { react: true })
-  })
+    })
 
 })
 

@@ -351,6 +351,7 @@ function makeAction(alt, namespace, name, implementation, obj) {
 
 module.exports = exports['default'];
 },{"../symbols/symbols":10,"../utils/AltUtils":11,"es-symbol":15}],6:[function(require,module,exports){
+/*global window*/
 'use strict';
 
 Object.defineProperty(exports, '__esModule', {
@@ -406,6 +407,9 @@ var Alt = (function () {
     this.serialize = config.serialize || JSON.stringify;
     this.deserialize = config.deserialize || JSON.parse;
     this.dispatcher = config.dispatcher || new _flux.Dispatcher();
+    this.batchingFunction = config.batchingFunction || function (callback) {
+      return callback();
+    };
     this.actions = { global: {} };
     this.stores = {};
     this.storeTransforms = config.storeTransforms || [];
@@ -417,7 +421,11 @@ var Alt = (function () {
   _createClass(Alt, [{
     key: 'dispatch',
     value: function dispatch(action, data, details) {
-      this.dispatcher.dispatch({ action: action, data: data, details: details });
+      var _this = this;
+
+      this.batchingFunction(function () {
+        return _this.dispatcher.dispatch({ action: action, data: data, details: details });
+      });
     }
   }, {
     key: 'createUnsavedStore',
@@ -485,7 +493,7 @@ var Alt = (function () {
         argsForConstructor[_key4 - 2] = arguments[_key4];
       }
 
-      var _this = this;
+      var _this2 = this;
 
       var exportObj = arguments[1] === undefined ? {} : arguments[1];
 
@@ -539,7 +547,7 @@ var Alt = (function () {
         }
 
         // create the action
-        exportObj[actionName] = (0, _actions2['default'])(_this, key, actionName, action, exportObj);
+        exportObj[actionName] = (0, _actions2['default'])(_this2, key, actionName, action, exportObj);
 
         // generate a constant
         var constant = utils.formatAsConstant(actionName);
@@ -636,6 +644,16 @@ var Alt = (function () {
     value: function getStore(name) {
       return this.stores[name];
     }
+  }], [{
+    key: 'debug',
+    value: function debug(name, alt) {
+      var key = 'alt.js.org';
+      if (typeof window !== 'undefined') {
+        window[key] = window[key] || [];
+        window[key].push({ name: name, alt: alt });
+      }
+      return alt;
+    }
   }]);
 
   return Alt;
@@ -687,32 +705,55 @@ var AltStore = (function () {
     this[Sym.LIFECYCLE] = model[Sym.LIFECYCLE];
     this[Sym.STATE_CONTAINER] = state || model;
 
+    this.preventDefault = false;
     this._storeName = model._storeName;
     this.boundListeners = model[Sym.ALL_LISTENERS];
     this.StoreModel = StoreModel;
+
+    var output = model.output || function (x) {
+      return x;
+    };
+
+    this.emitChange = function () {
+      _this[EE].emit('change', output.call(model, _this[Sym.STATE_CONTAINER]));
+    };
+
+    var handleDispatch = function handleDispatch(f, payload) {
+      try {
+        return f();
+      } catch (e) {
+        if (model[Sym.HANDLING_ERRORS]) {
+          _this[Sym.LIFECYCLE].emit('error', e, payload, _this[Sym.STATE_CONTAINER]);
+          return false;
+        } else {
+          throw e;
+        }
+      }
+    };
 
     fn.assign(this, model[Sym.PUBLIC_METHODS]);
 
     // Register dispatcher
     this.dispatchToken = alt.dispatcher.register(function (payload) {
+      _this.preventDefault = false;
       _this[Sym.LIFECYCLE].emit('beforeEach', payload, _this[Sym.STATE_CONTAINER]);
 
-      if (model[Sym.LISTENERS][payload.action]) {
-        var result = false;
+      var actionHandler = model[Sym.LISTENERS][payload.action] || model.otherwise;
 
-        try {
-          result = model[Sym.LISTENERS][payload.action](payload.data);
-        } catch (e) {
-          if (model[Sym.HANDLING_ERRORS]) {
-            _this[Sym.LIFECYCLE].emit('error', e, payload, _this[Sym.STATE_CONTAINER]);
-          } else {
-            throw e;
-          }
-        }
+      if (actionHandler) {
+        var result = handleDispatch(function () {
+          return actionHandler.call(model, payload.data, payload.action);
+        }, payload);
 
-        if (result !== false) {
-          _this.emitChange();
-        }
+        if (result !== false && !_this.preventDefault) _this.emitChange();
+      }
+
+      if (model.reduce) {
+        handleDispatch(function () {
+          model.setState(model.reduce(_this[Sym.STATE_CONTAINER], payload));
+        }, payload);
+
+        if (!_this.preventDefault) _this.emitChange();
       }
 
       _this[Sym.LIFECYCLE].emit('afterEach', payload, _this[Sym.STATE_CONTAINER]);
@@ -727,11 +768,6 @@ var AltStore = (function () {
       return this[EE];
     }
   }, {
-    key: 'emitChange',
-    value: function emitChange() {
-      this[EE].emit('change', this[Sym.STATE_CONTAINER]);
-    }
-  }, {
     key: 'listen',
     value: function listen(cb) {
       var _this2 = this;
@@ -744,6 +780,7 @@ var AltStore = (function () {
   }, {
     key: 'unlisten',
     value: function unlisten(cb) {
+      if (!cb) throw new TypeError('Unlisten must receive a function');
       this[Sym.LIFECYCLE].emit('unlisten');
       this[EE].removeListener('change', cb);
     }
@@ -805,17 +842,23 @@ var StoreMixin = {
   },
 
   exportAsync: function exportAsync(asyncMethods) {
+    this.registerAsync(asyncMethods);
+  },
+
+  registerAsync: function registerAsync(asyncDef) {
     var _this = this;
 
-    var _isLoading = false;
-    var _hasError = false;
+    var loadCounter = 0;
+
+    var asyncMethods = fn.isFunction(asyncDef) ? asyncDef(this.alt) : asyncDef;
 
     var toExport = Object.keys(asyncMethods).reduce(function (publicMethods, methodName) {
-      var asyncSpec = asyncMethods[methodName](_this);
+      var desc = asyncMethods[methodName];
+      var spec = fn.isFunction(desc) ? desc(_this) : desc;
 
       var validHandlers = ['success', 'error', 'loading'];
       validHandlers.forEach(function (handler) {
-        if (asyncSpec[handler] && !asyncSpec[handler][Sym.ACTION_KEY]) {
+        if (spec[handler] && !spec[handler][Sym.ACTION_KEY]) {
           throw new Error('' + handler + ' handler must be an action function');
         }
       });
@@ -826,22 +869,31 @@ var StoreMixin = {
         }
 
         var state = _this.getInstance().getState();
-        var value = asyncSpec.local && asyncSpec.local.apply(asyncSpec, [state].concat(args));
+        var value = spec.local && spec.local.apply(spec, [state].concat(args));
+        var shouldFetch = spec.shouldFetch ? spec.shouldFetch.apply(spec, [state].concat(args)) : value == null;
+        var intercept = spec.interceptResponse || function (x) {
+          return x;
+        };
+
+        var makeActionHandler = function makeActionHandler(action, isError) {
+          return function (x) {
+            var fire = function fire() {
+              loadCounter -= 1;
+              action(intercept(x, action, args));
+              if (isError) throw x;
+            };
+            return typeof window === 'undefined' ? function () {
+              return fire();
+            } : fire();
+          };
+        };
 
         // if we don't have it in cache then fetch it
-        if (!value) {
-          _isLoading = true;
-          _hasError = false;
+        if (shouldFetch) {
+          loadCounter += 1;
           /* istanbul ignore else */
-          if (asyncSpec.loading) asyncSpec.loading();
-          asyncSpec.remote.apply(asyncSpec, [state].concat(args)).then(function (v) {
-            _isLoading = false;
-            asyncSpec.success(v);
-          })['catch'](function (v) {
-            _isLoading = false;
-            _hasError = true;
-            asyncSpec.error(v);
-          });
+          if (spec.loading) spec.loading(intercept(null, spec.loading, args));
+          return spec.remote.apply(spec, [state].concat(args))['catch'](makeActionHandler(spec.error, 1)).then(makeActionHandler(spec.success));
         } else {
           // otherwise emit the change now
           _this.emitChange();
@@ -854,10 +906,7 @@ var StoreMixin = {
     this.exportPublicMethods(toExport);
     this.exportPublicMethods({
       isLoading: function isLoading() {
-        return _isLoading;
-      },
-      hasError: function hasError() {
-        return _hasError;
+        return loadCounter > 0;
       }
     });
   },
@@ -1025,7 +1074,10 @@ function createPrototype(proto, alt, key, extras) {
   return fn.assign(proto, _StoreMixin2['default'], {
     _storeName: key,
     alt: alt,
-    dispatcher: alt.dispatcher
+    dispatcher: alt.dispatcher,
+    preventDefault: function preventDefault() {
+      this.getInstance().preventDefault = true;
+    }
   }, extras);
 }
 
@@ -1061,6 +1113,10 @@ function createStoreFromObject(alt, StoreModel, key) {
   if (StoreProto.bindListeners) {
     _StoreMixin2['default'].bindListeners.call(StoreProto, StoreProto.bindListeners);
   }
+  /* istanbul ignore else */
+  if (StoreProto.observe) {
+    _StoreMixin2['default'].bindListeners.call(StoreProto, StoreProto.observe(alt));
+  }
 
   // bind the lifecycle events
   /* istanbul ignore else */
@@ -1071,7 +1127,7 @@ function createStoreFromObject(alt, StoreModel, key) {
   }
 
   // create the instance and fn.assign the public methods to the instance
-  storeInstance = fn.assign(new _AltStore2['default'](alt, StoreProto, StoreProto.state, StoreModel), StoreProto.publicMethods, { displayName: key });
+  storeInstance = fn.assign(new _AltStore2['default'](alt, StoreProto, StoreProto.state || {}, StoreModel), StoreProto.publicMethods, { displayName: key });
 
   return storeInstance;
 }
@@ -1115,13 +1171,8 @@ function createStoreFromClass(alt, StoreModel, key) {
 
   var store = new (_bind.apply(Store, [null].concat(argsForClass)))();
 
-  if (config.bindListeners) {
-    store.bindListeners(config.bindListeners);
-  }
-
-  if (config.datasource) {
-    store.exportAsync(config.datasource);
-  }
+  if (config.bindListeners) store.bindListeners(config.bindListeners);
+  if (config.datasource) store.registerAsync(config.datasource);
 
   storeInstance = fn.assign(new _AltStore2['default'](alt, store, store[alt.config.stateKey] || store[config.stateKey] || null, StoreModel), utils.getInternalMethods(StoreModel), config.publicMethods, { displayName: key });
 
@@ -2278,15 +2329,28 @@ module.exports = Iso;
 
 
 },{"escape-html":23}],23:[function(require,module,exports){
+/*!
+ * escape-html
+ * Copyright(c) 2012-2013 TJ Holowaychuk
+ * MIT Licensed
+ */
+
+/**
+ * Module exports.
+ * @public
+ */
+
+module.exports = escapeHtml;
+
 /**
  * Escape special characters in the given string of html.
  *
- * @param  {String} html
- * @return {String}
- * @api private
+ * @param  {string} str The string to escape for inserting into HTML
+ * @return {string}
+ * @public
  */
 
-module.exports = function(html) {
+function escapeHtml(html) {
   return String(html)
     .replace(/&/g, '&amp;')
     .replace(/"/g, '&quot;')
@@ -24131,9 +24195,17 @@ var React = _interopRequire(require("react"));
 
 var alt = _interopRequire(require("../alt"));
 
+var AltContainer = _interopRequire(require("alt/AltContainer"));
+
 var IsomorphicMixin = _interopRequire(require("alt/mixins/IsomorphicMixin"));
 
 var Locations = _interopRequire(require("./Locations"));
+
+var Favorites = _interopRequire(require("./Favorites"));
+
+var LocationStore = _interopRequire(require("../stores/LocationStore"));
+
+var FavoritesStore = _interopRequire(require("../stores/FavoritesStore"));
 
 module.exports = React.createClass({
   displayName: "exports",
@@ -24141,25 +24213,61 @@ module.exports = React.createClass({
   mixins: [IsomorphicMixin.create(alt)],
 
   render: function render() {
-    return React.createElement("div", null, React.createElement(Locations));
-  }
-});
 
-},{"../alt":198,"./Locations":200,"alt/mixins/IsomorphicMixin":13,"react":196}],200:[function(require,module,exports){
+    return React.createElement(
+      "div",
+      null,
+      React.createElement(
+        "h1",
+        null,
+        "Locations"
+      ),
+      React.createElement(
+        AltContainer,
+        { store: LocationStore },
+        React.createElement(Locations, null)
+      ),
+      React.createElement(
+        "h1",
+        null,
+        "Favorites"
+      ),
+      React.createElement(
+        AltContainer,
+        { store: FavoritesStore },
+        React.createElement(Favorites, null)
+      )
+    );
+  }
+
+})
+
+/*
+module.exports = React.createClass({
+  mixins: [IsomorphicMixin.create(alt)],
+
+
+
+  render: function () {
+    return React.createElement(
+      'div',
+      null,
+      React.createElement(Locations)
+    )
+  }
+})
+
+*/
+;
+
+},{"../alt":198,"../stores/FavoritesStore":202,"../stores/LocationStore":203,"./Favorites":200,"./Locations":201,"alt/AltContainer":2,"alt/mixins/IsomorphicMixin":13,"react":196}],200:[function(require,module,exports){
 "use strict";
 
 var _interopRequire = function (obj) { return obj && obj.__esModule ? obj["default"] : obj; };
 
 var React = _interopRequire(require("react"));
 
-var AltContainer = _interopRequire(require("alt/AltContainer"));
-
-var LocationStore = _interopRequire(require("../stores/LocationStore"));
-
-var FavoritesStore = _interopRequire(require("../stores/FavoritesStore"));
-
-var LocationActions = _interopRequire(require("../actions/LocationActions"));
-
+/* favorites */
 var Favorites = React.createClass({
   displayName: "Favorites",
 
@@ -24178,8 +24286,25 @@ var Favorites = React.createClass({
   }
 });
 
-var AllLocations = React.createClass({
-  displayName: "AllLocations",
+module.exports = Favorites;
+
+},{"react":196}],201:[function(require,module,exports){
+"use strict";
+
+var _interopRequire = function (obj) { return obj && obj.__esModule ? obj["default"] : obj; };
+
+var React = _interopRequire(require("react"));
+
+var AltContainer = _interopRequire(require("alt/AltContainer"));
+
+var LocationStore = _interopRequire(require("../stores/LocationStore"));
+
+var FavoritesStore = _interopRequire(require("../stores/FavoritesStore"));
+
+var LocationActions = _interopRequire(require("../actions/LocationActions"));
+
+var Locations = React.createClass({
+  displayName: "Locations",
 
   addFave: function addFave(ev) {
     var location = LocationStore.getLocation(Number(ev.target.getAttribute("data-id")));
@@ -24188,22 +24313,6 @@ var AllLocations = React.createClass({
 
   render: function render() {
     var _this = this;
-
-    if (LocationStore.hasError()) {
-      return React.createElement(
-        "div",
-        null,
-        "Something is wrong"
-      );
-    }
-
-    if (LocationStore.isLoading()) {
-      return React.createElement(
-        "div",
-        null,
-        React.createElement("img", { src: "/public/img/ajax-loader.gif" })
-      );
-    }
 
     return React.createElement(
       "ul",
@@ -24227,83 +24336,34 @@ var AllLocations = React.createClass({
   }
 });
 
-var Locations = React.createClass({
-  displayName: "Locations",
-
-  componentDidMount: function componentDidMount() {
+/*
+let Locations = React.createClass({
+  componentDidMount() {
     LocationStore.fetchLocations();
   },
 
-  render: function render() {
-    return React.createElement(
-      "div",
-      null,
-      React.createElement(
-        "h1",
-        null,
-        "Locations"
-      ),
-      React.createElement(
-        AltContainer,
-        { store: LocationStore },
-        React.createElement(AllLocations, null)
-      ),
-      React.createElement(
-        "h1",
-        null,
-        "Favorites"
-      ),
-      React.createElement(
-        AltContainer,
-        { store: FavoritesStore },
-        React.createElement(Favorites, null)
-      )
+  render() {
+    return (
+      <div>
+        <h1>Locations</h1>
+        <AltContainer store={LocationStore}>
+          <AllLocations />
+        </AltContainer>
+
+        <h1>Favorites</h1>
+        <AltContainer store={FavoritesStore}>
+          <Favorites />
+        </AltContainer>
+      </div>
     );
   }
 });
 
+*/
+
 module.exports = Locations;
 
-},{"../actions/LocationActions":197,"../stores/FavoritesStore":202,"../stores/LocationStore":203,"alt/AltContainer":2,"react":196}],201:[function(require,module,exports){
-"use strict";
-
-var _interopRequire = function (obj) { return obj && obj.__esModule ? obj["default"] : obj; };
-
-var LocationActions = _interopRequire(require("../actions/LocationActions"));
-
-var mockData = [{ id: 0, name: "Abu Dhabi" }, { id: 1, name: "Berlin" }, { id: 2, name: "Bogota" }, { id: 3, name: "Buenos Aires" }, { id: 4, name: "Cairo" }, { id: 5, name: "Chicago" }, { id: 6, name: "Lima" }, { id: 7, name: "London" }, { id: 8, name: "Miami" }, { id: 9, name: "Moscow" }, { id: 10, name: "Mumbai" }, { id: 11, name: "Paris" }, { id: 12, name: "San Francisco" }];
-
-var LocationSource = {
-  fetchLocations: function fetchLocations() {
-    return {
-      remote: function remote() {
-        return new Promise(function (resolve, reject) {
-          // simulate an asynchronous flow where data is fetched remotely
-          setTimeout(function () {
-            if (true) {
-              // resolve with some mock data
-              resolve(mockData);
-            } else {
-              reject("Things have broken");
-            }
-          }, 250);
-        });
-      },
-
-      local: function local() {
-        return false;
-      },
-
-      success: LocationActions.updateLocations,
-      error: LocationActions.locationsFailed,
-      loading: LocationActions.fetchLocations
-    };
-  }
-};
-
-module.exports = LocationSource;
-
-},{"../actions/LocationActions":197}],202:[function(require,module,exports){
+},{"../actions/LocationActions":197,"../stores/FavoritesStore":202,"../stores/LocationStore":203,"alt/AltContainer":2,"react":196}],202:[function(require,module,exports){
 "use strict";
 
 var _interopRequire = function (obj) { return obj && obj.__esModule ? obj["default"] : obj; };
@@ -24353,8 +24413,6 @@ var alt = _interopRequire(require("../alt"));
 
 var LocationActions = _interopRequire(require("../actions/LocationActions"));
 
-var LocationSource = _interopRequire(require("../sources/LocationSource"));
-
 var FavoritesStore = _interopRequire(require("./FavoritesStore"));
 
 var LocationStore = (function () {
@@ -24366,15 +24424,12 @@ var LocationStore = (function () {
     this.bindListeners({
       handleUpdateLocations: LocationActions.UPDATE_LOCATIONS,
       handleFetchLocations: LocationActions.FETCH_LOCATIONS,
-      handleLocationsFailed: LocationActions.LOCATIONS_FAILED,
       setFavorites: LocationActions.FAVORITE_LOCATION
     });
 
     this.exportPublicMethods({
       getLocation: this.getLocation
     });
-
-    this.exportAsync(LocationSource);
   }
 
   _createClass(LocationStore, {
@@ -24387,11 +24442,6 @@ var LocationStore = (function () {
     handleFetchLocations: {
       value: function handleFetchLocations() {
         this.locations = [];
-      }
-    },
-    handleLocationsFailed: {
-      value: function handleLocationsFailed(errorMessage) {
-        this.errorMessage = errorMessage;
       }
     },
     resetAllFavorites: {
@@ -24410,9 +24460,7 @@ var LocationStore = (function () {
         var _this = this;
 
         this.waitFor(FavoritesStore);
-
         var favoritedLocations = FavoritesStore.getState().locations;
-
         this.resetAllFavorites();
 
         favoritedLocations.forEach(function (location) {
@@ -24448,4 +24496,4 @@ var LocationStore = (function () {
 
 module.exports = alt.createStore(LocationStore, "LocationStore");
 
-},{"../actions/LocationActions":197,"../alt":198,"../sources/LocationSource":201,"./FavoritesStore":202}]},{},[1]);
+},{"../actions/LocationActions":197,"../alt":198,"./FavoritesStore":202}]},{},[1]);
