@@ -10,7 +10,7 @@
     "jade": "^1.9.2",
     "alt": "^0.16.5",
     "iso": "^4.1.0",
-    "react": "^0.13.0-beta.1",
+    "react": "^0.13.3",
     "react-search": "^0.0.10",
     "react-table-view": "^0.0.9"
   },
