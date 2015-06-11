@@ -1,7 +1,7 @@
 import React from 'react'
-import MovieStore from '../stores/MovieStore'
-import MovieActions from '../actions/MovieActions'
-import MovieRow from './MovieRow'
+import MovieStore from '../../stores/MovieStore'
+import MovieActions from '../../actions/MovieActions'
+import MovieRow from '../MovieRow'
 
 let MovieView = React.createClass({
 
@@ -9,13 +9,12 @@ let MovieView = React.createClass({
     return MovieStore.getState()
   },
 
-  initializeMovie (name) {
-    MovieActions.setMovie(name)
+  initMovie (id) {
+    MovieActions.setMovie(id)
   },
 
   componentDidMount() {
-    // pet name params passed through fine on component mount
-    this.initializeMovie(this.props.params.name)
+    this.initMovie(this.props.params.id)
     MovieStore.listen(() => this.setState(MovieStore.getState()))
   },
 
@@ -28,7 +27,7 @@ let MovieView = React.createClass({
       When changing to a new route with the same controller view
       the component does not re-mount. We need to detect the new params here
     */
-    this.initializePet(nextProps.params.name)
+    this.initMovie(nextProps.params.id)
     MovieStore.listen(() => this.setState(MovieStore.getState()))
   },
 
@@ -38,10 +37,15 @@ let MovieView = React.createClass({
 
   render() {
     return (
+
 	    <div>
+
         <h2>{`Hello , ${this.state.movie.name}`}</h2>
         <MovieRow movie={this.state.movie} />
-		    <button onClick={this.sayHi}>Say Hi</button>
+
+        { /* TODO Rate movie component ... */}
+		    <button onClick={this.sayHi}>Rate Movie</button>
+
 	    </div>
     );
 

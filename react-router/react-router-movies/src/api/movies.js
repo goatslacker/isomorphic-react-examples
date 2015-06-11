@@ -43,11 +43,11 @@ let movieData = [
 
 let movies = {
 
-  findMovie: function(name, cb) {
+  findMovie: function(id, cb) {
     let movie = '';
 
     for (let m of movieData) {
-      if (m.name.toLowerCase() === name.toLowerCase()) {
+      if (m.id.toLowerCase() === id.toLowerCase()) {
         this.movie = m
         break;
       }

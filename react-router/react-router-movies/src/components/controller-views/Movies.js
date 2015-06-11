@@ -1,13 +1,12 @@
 import React from 'react'
-import MovieStore from '../stores/MovieStore'
-import MovieRow from './MovieRow'
+import MovieStore from '../../stores/MovieStore'
+import MovieRow from '../MovieRow'
 
 var MovieList = React.createClass({
 
   getInitialState() {
     return MovieStore.getState()
   },
-
 
   render() {
 
@@ -21,6 +20,7 @@ var MovieList = React.createClass({
 
     return (
       <div>
+
         <h2>Movie List</h2>
         <span>{movieList}</span>
       </div>

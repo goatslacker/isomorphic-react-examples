@@ -1,22 +1,20 @@
 import React from 'react'
-
 let { RouteHandler, Link } = require('react-router')
 
 let MovieLinks = React.createClass({
 
   propTypes: {
-    movies: React.PropTypes.object
+    movies: React.PropTypes.array
   },
 
   render() {
 
     let movieLinks = this.props.movies.map(function (m, i) {
 
-      let name = m.name
       return (
         <li key={i}>
-          <Link to='movieView' params={{name: name}}>
-            {`View the movie: ${name}`}
+          <Link to='movie' params={{id: m.id }}>
+            {`View the movie: ${m.name}`}
           </Link>
         </li>
       );
@@ -28,7 +26,6 @@ let MovieLinks = React.createClass({
         <ul>{movieLinks}</ul>
 	    </div>
     );
-
 
   }
 })

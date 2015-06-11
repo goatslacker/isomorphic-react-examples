@@ -8,10 +8,10 @@ class MovieActions {
   }
 
 
-  setMovie(name) {
+  setMovie(id) {
 
   	// call out to your movie api in the action
-    MovieApi.findMovie(name, function (movie) {
+    MovieApi.findMovie(id, function (movie) {
       let data = { MovieStore: { movie: movie } }
       
       /* not sure if it is best to bootstrap here or just send to the store */

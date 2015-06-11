@@ -1,5 +1,7 @@
 import React from 'react'
 
+let { RouteHandler, Link } = require('react-router')
+
 let MovieRow = React.createClass({
 
   propTypes: {
@@ -12,7 +14,11 @@ let MovieRow = React.createClass({
 	    <div>
         <h3>{this.props.movie.name}</h3>
         <span>{this.props.movie.description}</span>
-        <img src={this.props.movie.image}></img>
+        
+        <Link to='movie' params={ { id: this.props.movie.id } }>
+          <img src={this.props.movie.image}></img>
+        </Link>
+
 	    </div>
     );
 
