@@ -10,10 +10,14 @@ import alt from './src/alt'
 */
 
 Iso.bootstrap(function (state, _, container) {
+
+  // bootstrap the state from the server
   alt.bootstrap(state)
 
-  Router.run(routes, Router.HistoryLocation, function (Handler) {
-    let node = React.createElement(Handler)
+  Router.run(routes, Router.HistoryLocation, function (Handler, req) {
+
+  	// req.params are passed in as props to the component
+  	let node = React.createElement(Handler)
     React.render(node, container)
   })
 })

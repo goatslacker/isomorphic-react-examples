@@ -1,35 +1,38 @@
+/* 
+   Simulate an asynchronous event that takes 500ms to complete 
+   Could return a promiseee...
+*/
 
-/* Simulate an asynchronous event that takes 300ms to complete */
-//
-// TODO: Lets make this a promiseee...
-//
-
+let petData = [ 
+    {name: 'darkdog', description: ' is a very scary dog', image: '/public/img/darkdog.png'},
+    {name: 'winston', description: ' is a fluffy dog', image: '/public/img/winston.png'}, 
+    {name: 'chaplin', description: ' is a red dog', image: '/public/img/chaplin.png'}, 
+    {name: 'bennie', description: ' is a cool dog', image: '/public/img/bennie.png'} 
+  ]
 
 let pets = {
 
-  pets: [ 
-    {name: 'DARK DOG', description: 'DARK DOG is sooo Dark'},
-    {name: 'Winston', description: 'Winston is a fluffy dog'}, 
-    {name: 'Chaplin', description: 'Chaplin is a skinny dog'}, 
-    {name: 'Bennie', description: 'Bennie is a cool dog'} 
-  ],
-
-
-  findPet: function(petName) {
+  findPet: function(petName, cb) {
     let pet = '';
 
-    for (let p of this.pets) {
+    for (let p of petData) {
       if (p.name.toLowerCase() === petName.toLowerCase()) {
         this.pet = p
         break;
       }
     }
 
-    return this.pet
+    setTimeout(function () {
+      cb(this.pet)
+    }.bind(this), 200)
+
   },
 
-  findAllPets: function() {
-    return pets  
+  findAllPets: function(cb) {
+    setTimeout(function () {
+      cb(petData)  
+    }.bind(this), 200)
+
   }
 
 }

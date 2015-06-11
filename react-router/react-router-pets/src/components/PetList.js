@@ -1,5 +1,6 @@
 import React from 'react'
 import PetStore from '../stores/PetStore'
+import PetRow from './PetRow'
 
 var PetList = React.createClass({
 
@@ -7,21 +8,25 @@ var PetList = React.createClass({
     return PetStore.getState()
   },
 
+
   render() {
 
+    var petList = this.state.pets.map(function (p, i) {
+
+      return (
+        <PetRow key={i} pet={p} />
+      );
+
+    }.bind(this));
+
     return (
-	    <div>
-        <h2>Pets</h2>
-		
- 		<div>{ this.state.pets}</div>
-
-		<button onClick={this.sayHi}>Say Hi to Pets</button>
-
-	    </div>
+      <div>
+        <h2>Pet List</h2>
+        <span>{petList}</span>
+      </div>
     );
-
-
   }
+
 })
 
 module.exports = PetList

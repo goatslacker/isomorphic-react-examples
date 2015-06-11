@@ -20,13 +20,6 @@ app.use('/public', express.static(path.join(__dirname, 'public')))
 app.use(favicon(__dirname + '/public/favicon.ico'));
 
 
-function getNameFromServer(cb) {
-  setTimeout(function () {
-    cb('Server')
-  }, 300)
-}
-
-
 
 /* 
   Prior to running react-router we setup this route in order to handle data fetching. 
@@ -39,9 +32,10 @@ app.get('/', function (req, res, next) {
   console.log('home loaded from express')
 
   // call to pre load pets ...
-  let pets = PetApi.findAllPets()
-  res.locals.data = { PetStore: { pets: pets } }
-  next()
+  let pets = PetApi.findAllPets(function (pets){
+    res.locals.data = { PetStore: { pets: pets } }
+    next()
+  })
   
 })
 
@@ -55,23 +49,26 @@ app.get('/pets/:name?', function (req, res, next) {
   if (req.params.name) {
 
     // call to pre load pets ...
-    let pets = PetApi.findAllPets()
+    PetApi.findAllPets(function (pets){
 
-    // call to bring detailed information on individual pet
-    let pet = PetApi.findPet('Winston')
-
-    res.locals.data = { PetStore: { pet: pet, pets: pets } }
-    next()
+      // call to bring detailed information on individual pet
+      PetApi.findPet(req.params.name, function (pet) {
+        res.locals.data = { PetStore: { pet: pet, pets: pets } }
+        next()
+      })
+    })
 
   } else {
 
     // call to pre load pets ...
-    let pets = PetApi.findAllPets()
-    res.locals.data = { PetStore: { pets: pets } }
-    next()
-  }
-})
+    let pets = PetApi.findAllPets(function (pets){
+      res.locals.data = { PetStore: { pets: pets } }
+      next()
+    })
 
+  }
+
+})
 
 
 /*
@@ -79,17 +76,25 @@ app.get('/pets/:name?', function (req, res, next) {
 */
 app.use(function (req, res) {
 
-  // We take the locals data we have fetched and seed our stores with data
+  /* 
+    We take the locals data we have fetched and seed our stores with data
+    Makes sure that your components have the proper data
+  */
   alt.bootstrap(JSON.stringify(res.locals.data || {}))
   let iso = new Iso()
 
-  // We use react-router to run the URL that is provided in routes.jsx
+  // Use react-router to run the URL that is provided in routes.js
 
   Router.run(routes, req.url, function (Handler) {
-    let content = React.renderToString(React.createElement(Handler))
+    let node = React.renderToString(React.createElement(Handler))
+
+    /* 
+      alt.flush() once the view markup has been created. 
+      resets your stores so they are ready for the next request. 
+    */
+    iso.add(node, alt.flush())
 
     // Use iso to render, picks back up on the client side and bootstraps the stores.
-    iso.add(content, alt.flush())
     res.render('layout', { html: iso.render() })
 
   })
