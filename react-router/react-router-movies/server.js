@@ -8,7 +8,7 @@ import path from 'path'
 
 import routes from './src/routes'
 import alt from './src/alt'
-import PetApi from './src/api/pets'
+import MovieApi from './src/api/movies'
 
 let port = 8080
 let ip = '127.0.0.1'
@@ -31,9 +31,9 @@ app.get('/', function (req, res, next) {
 
   console.log('home loaded from express')
 
-  // call to pre load pets ...
-  let pets = PetApi.findAllPets(function (pets){
-    res.locals.data = { PetStore: { pets: pets } }
+  // call to pre load movies ...
+  MovieApi.findAllMovies(function (movies){
+    res.locals.data = { MovieStore: { movies: movies } }
     next()
   })
   
@@ -41,28 +41,28 @@ app.get('/', function (req, res, next) {
 
 
 
-app.get('/pets/:name?', function (req, res, next) {
+app.get('/movies/:name?', function (req, res, next) {
 
-  console.log('pets loaded from express')
+  console.log('movies loaded from express')
   
-  // pet names
+  // movie name
   if (req.params.name) {
 
-    // call to pre load pets ...
-    PetApi.findAllPets(function (pets){
+    // call to pre load movies ...
+    MovieApi.findAllMovies(function (movies){
 
-      // call to bring detailed information on individual pet
-      PetApi.findPet(req.params.name, function (pet) {
-        res.locals.data = { PetStore: { pet: pet, pets: pets } }
+      // call to bring detailed information on an individual movie
+      MovieApi.findMovie(req.params.name, function (movie) {
+        res.locals.data = { MovieStore: { movie: movie, movies: movies } }
         next()
       })
     })
 
   } else {
 
-    // call to pre load pets ...
-    let pets = PetApi.findAllPets(function (pets){
-      res.locals.data = { PetStore: { pets: pets } }
+    // call to pre load movies ...
+    MovieApi.findAllMovies(function (movies){
+      res.locals.data = { MovieStore: { movies: movies } }
       next()
     })
 

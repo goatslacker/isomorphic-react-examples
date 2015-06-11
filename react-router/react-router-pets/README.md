@@ -14,6 +14,6 @@ There are a few routes you can visit directly:
 
 `localhost:8080/pets` and `localhost:8080/pet`. 
 
-Pets will display a list of the pets whereas pet will display all the info for a pet.
+Pets will display a list of the pets whereas pet will display all the info for a specific pet... e.g. /pet/darkdog
 
-For funsies you can include your own name as a parameter to hello: eg `localhost:8080/hello/jane` This will be seeded on the server and bootstrapped on the client.
+![](public/img/darkdog.png)

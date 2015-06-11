@@ -1,7 +1,7 @@
 {
   "name": "iso-react-router-flux",
   "version": "1.0.0",
-  "description": "Isomorphic date/time application with react-router and flux",
+  "description": "Isomorphic movie application with react-router and flux",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
