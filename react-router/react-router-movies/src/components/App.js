@@ -1,27 +1,25 @@
 import React from 'react'
-import PetLinks from './PetLinks'
-import PetStore from '../stores/PetStore'
+import MovieLinks from './MovieLinks'
+import MovieStore from '../stores/MovieStore'
 
 let { RouteHandler, Link } = require('react-router')
 
 let App = React.createClass({
 
   getInitialState() {
-    return PetStore.getState()
+    return MovieStore.getState()
   },
 
   render() {
-
-    console.log(this.state)
 
     return (
       <div>
 
         {/* links */}
-        <Link to='petList'>All Pet details</Link>
+        <Link to='movieList'>All movie details</Link>
 
-        <PetLinks pets={this.state.pets} />
-
+        <MovieLinks movies={this.state.movies} />
+        
         {/* route */}
         <RouteHandler {...this.props} />
 

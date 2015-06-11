@@ -9,7 +9,7 @@ class MovieStore {
 
     this.bindListeners({
       sayHi: MovieActions.SAY_HI,
-      setPet: MovieActions.SET_PET 
+      setMovie: MovieActions.SET_MOVIE 
     });
 
   }
@@ -18,7 +18,7 @@ class MovieStore {
   	/* not sure what this method does... could update a message  */
   }
 
-  setPet(pet) {
+  setMovie(movie) {
   	/* maybe update the current pet... */
   }
 

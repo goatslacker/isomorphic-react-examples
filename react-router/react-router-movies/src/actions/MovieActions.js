@@ -8,7 +8,7 @@ class MovieActions {
   }
 
 
-  setPet(name) {
+  setMovie(name) {
 
   	// call out to your movie api in the action
     MovieApi.findMovie(name, function (movie) {

@@ -40,7 +40,6 @@ app.get('/', function (req, res, next) {
 })
 
 
-
 app.get('/movies/:name?', function (req, res, next) {
 
   console.log('movies loaded from express')
