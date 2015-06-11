@@ -1,5 +1,5 @@
 {
-  "name": "iso-react-router-flux",
+  "name": "iso-react-router-flux-movies",
   "version": "1.0.0",
   "description": "Isomorphic movie application with react-router and flux",
   "main": "index.js",

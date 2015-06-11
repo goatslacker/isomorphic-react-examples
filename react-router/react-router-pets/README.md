@@ -1,4 +1,4 @@
-# iso-react-router-flux
+# iso-react-router-flux-pets
 
 > Isomorphic react application using flux and react-router
 

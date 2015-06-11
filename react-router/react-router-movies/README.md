@@ -1,4 +1,4 @@
-# iso-react-router-flux
+# iso-react-router-flux-movies
 
 > Isomorphic react application using flux and react-router
 
@@ -12,8 +12,8 @@ Then open your browser to `localhost:8080` and enjoy.
 
 There are a few routes you can visit directly:
 
-`localhost:8080/pets` and `localhost:8080/pet`. 
+`localhost:8080/movies` and `localhost:8080/movie/`. 
 
-Pets will display a list of the pets whereas pet will display all the info for a pet.
+Movies will display a list of the movies whereas movie will display all the info for an individual movie... e.g. Gleaming the Cube
 
-For funsies you can include your own name as a parameter to hello: eg `localhost:8080/hello/jane` This will be seeded on the server and bootstrapped on the client.
+![](public/img/gleamingthecube.jpg)
