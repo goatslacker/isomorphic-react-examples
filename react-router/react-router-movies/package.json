@@ -1,0 +1,27 @@
+{
+  "name": "iso-react-router-flux",
+  "version": "1.0.0",
+  "description": "Isomorphic date/time application with react-router and flux",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "browserify --debug -t [babelify] client.js > public/js/bundle.js",
+    "start": "babel-node server.js"
+  },
+  "author": "Steven Iseki <stevenisekimartin@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.11.2",
+    "serve-favicon": "^2.2.0",
+    "jade": "^1.9.2",
+    "alt": "^0.16.5",
+    "iso": "^4.1.0",
+    "react": "^0.13.3",
+    "react-router": "^0.13.3"
+  },
+  "devDependencies": {
+    "babel": "^4.0.1",
+    "babelify": "^5.0.3",
+    "browserify": "^8.0.3"
+  }
+}

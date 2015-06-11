@@ -32,7 +32,7 @@ app.get('/', function (req, res, next) {
   console.log('home loaded from express')
 
   // call to pre load pets ...
-  PetApi.findAllPets(function (pets){
+  let pets = PetApi.findAllPets(function (pets){
     res.locals.data = { PetStore: { pets: pets } }
     next()
   })
@@ -61,7 +61,7 @@ app.get('/pets/:name?', function (req, res, next) {
   } else {
 
     // call to pre load pets ...
-    PetApi.findAllPets(function (pets){
+    let pets = PetApi.findAllPets(function (pets){
       res.locals.data = { PetStore: { pets: pets } }
       next()
     })

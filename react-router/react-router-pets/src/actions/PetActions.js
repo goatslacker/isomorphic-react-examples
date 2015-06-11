@@ -1,7 +1,7 @@
 import alt from '../alt'
 import PetApi from '../api/pets'
 
-class HelloActions {
+class PetActions {
   
   sayHi(name) {
     this.dispatch(name);
@@ -24,4 +24,4 @@ class HelloActions {
 
 }
 
-module.exports = alt.createActions(HelloActions);
+module.exports = alt.createActions(PetActions);
