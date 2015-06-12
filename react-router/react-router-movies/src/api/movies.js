@@ -43,26 +43,49 @@ let movieData = [
 
 let movies = {
 
-  findMovie: function(id, cb) {
-    let movie = '';
+  findMovie: function(id) {
 
-    for (let m of movieData) {
-      if (m.id.toLowerCase() === id.toLowerCase()) {
-        this.movie = m
-        break;
+    return new Promise(function(resolve, reject) {
+
+
+      let movie = '';
+
+      if(id === undefined){
+        reject(Error('incorrect movie id'));
       }
-    }
 
-    setTimeout(function () {
-      cb(this.movie)
-    }.bind(this), 300)
+
+      for (let m of movieData) {
+        if (m.id.toLowerCase() === id.toLowerCase()) {
+          movie = m
+          break;
+        }
+      }
+
+
+      setTimeout(function () {
+        // resolve movies after, using setTimeout as a delay
+        resolve(movie);
+      }.bind(this), 300)
+
+    });
 
   },
 
-  findAllMovies: function(cb) {
-    setTimeout(function () {
-      cb(movieData)  
-    }.bind(this), 300)
+  findAllMovies: function() {
+
+    return new Promise(function(resolve, reject) {
+
+      if(movieData === undefined){
+        reject(Error('incorrect movie id'));
+      }
+
+      setTimeout(function () {
+        // resolve movies after, using setTimeout as a delay
+        resolve(movieData);
+      }.bind(this), 300)
+
+    });
 
   }
 

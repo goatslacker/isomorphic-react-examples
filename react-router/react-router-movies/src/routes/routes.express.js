@@ -8,12 +8,13 @@ module.exports = function(app) {
     console.log('home route loaded from express')
 
     // call to pre load movies ...
-    MovieApi.findAllMovies(function (movies){
-      res.locals.data = { MovieStore: { movies: movies } }
-      next()
+    MovieApi.findAllMovies()
+      .then( function (movies){
+        res.locals.data = { MovieStore: { movies: movies } }
+        next()
     })
-
   })
+
 
   /* movie list route */
 
@@ -22,12 +23,13 @@ module.exports = function(app) {
     console.log('movie list route loaded from express')
 
       // call to pre load movies ...
-      MovieApi.findAllMovies(function (movies){
-        res.locals.data = { MovieStore: { movies: movies } }
+      MovieApi.findAllMovies()
+        .then( function (movies){
+          res.locals.data = { MovieStore: { movies: movies } }
         next()
       })
-
   })
+  
 
   /* movie route */
   app.get('/movie/:id', function (req, res, next) {
@@ -35,20 +37,26 @@ module.exports = function(app) {
     console.log('movie route loaded from express')
     
     // movie name
-    if (req.params.id) {
-
-      // call to pre load movies ...
-      MovieApi.findAllMovies(function (movies){
-
-        // call to bring detailed information on an individual movie
-        MovieApi.findMovie(req.params.id, function (movie) {
-          res.locals.data = { MovieStore: { movie: movie, movies: movies } }
-          next()
-        })
-      })
-    } else {
-      next()      
+    if (!req.params.id) {
+      next()
     }
+
+    // call to pre load movies ...
+    MovieApi.findAllMovies()
+      .then( function (movies){
+
+      // call to bring detailed information on an individual movie
+      MovieApi.findMovie(req.params.id)
+      .then( function (movie) {
+        res.locals.data = { MovieStore: { movie: movie, movies: movies } }
+        next()
+      }, function(error) {
+        console.error("Failed!", error);
+      });
+
+    }, function(error) {
+      console.error("Failed!", error);
+    });
 
 
   })

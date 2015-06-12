@@ -33,12 +33,9 @@ app.use(function (req, res) {
   // react-router runs the URL that is provided in reactRoutes
 
   Router.run(reactRoutes, req.url, function (Handler) {
-    let node = React.renderToString(React.createElement(Handler))
-
-    // alt.flush() once the view markup has been created. resets your stores
-    iso.add(node, alt.flush())
-
     // Use iso to render, picks back up on the client side and bootstraps the stores.
+    let node = React.renderToString(React.createElement(Handler))
+    iso.add(node, alt.flush())
     res.render('layout', { html: iso.render() })
 
   })
