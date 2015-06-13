@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "browserify --debug -t [babelify] client.js > public/js/bundle.js",
-    "start": "babel-node server.js"
+    "start": "node server.js"
   },
   "author": "Steven Iseki <stevenisekimartin@gmail.com>",
   "license": "MIT",
