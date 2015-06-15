@@ -13,7 +13,7 @@ let movieData = [
     },
     {
       id: "1012",
-      name: "Aitborne", 
+      name: "Airborne", 
       year: "1993",
       description: "When his parents go to Australia for six months to work on a zoology project, young Mitchell (Shane McDermott) is sent to live with his Aunt Irene (Edie McClurg) and Uncle Louie (Patrick Thomas O'Brien) in Cincinnati. Initially dismayed by the cold climate, Mitchell's unhappiness increases when he's taunted by the high school's popular kids. As he strikes up a relationship with Nikki (Brittney Powell), Mitchell begins to win over his bullies by using his Rollerblading skills in street hockey games.",
       image: "/public/img/airborne.jpg"
@@ -77,7 +77,7 @@ let movies = {
     return new Promise(function(resolve, reject) {
 
       if(movieData === undefined){
-        reject(Error('incorrect movie id'));
+        reject(Error('Could not find any movies'));
       }
 
       setTimeout(function () {

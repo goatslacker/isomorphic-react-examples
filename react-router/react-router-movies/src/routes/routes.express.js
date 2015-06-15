@@ -41,23 +41,24 @@ module.exports = function(app) {
       next()
     }
 
-    // call to pre load movies ...
+    /* 
+      call to pre load movies ...
+      then call to bring detailed information on an individual movie
+    */
+    let data = { MovieStore: { movie: {}, movies: [] } }
+
     MovieApi.findAllMovies()
-      .then( function (movies){
-
-      // call to bring detailed information on an individual movie
-      MovieApi.findMovie(req.params.id)
-      .then( function (movie) {
-        res.locals.data = { MovieStore: { movie: movie, movies: movies } }
-        next()
-      }, function(error) {
-        console.error("Failed!", error);
-      });
-
-    }, function(error) {
-      console.error("Failed!", error);
+    .then( function (movies){
+      data.MovieStore.movies = movies
+      return MovieApi.findMovie(req.params.id)
+    }).then(function(movie){
+      data.MovieStore.movie = movie
+      res.locals.data = data
+      next()
+    }).catch(function(error) {
+      console.log('got to error')
+      next()
     });
-
 
   })
 
